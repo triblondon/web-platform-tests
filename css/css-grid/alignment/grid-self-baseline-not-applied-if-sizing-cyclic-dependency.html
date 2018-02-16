@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Self-Baseline alignment and sizing cyclic dependency</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#alignment">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#column-align">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#row-align">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-items">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-items">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-alignment">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-baseline">
+<link rel="stylesheet" href="../support/grid.css">
+<link rel="stylesheet" href="../../support/alignment.css">
+<meta name="assert" content="Grid items whose size in the inline or block axis depends on the size of an intrinsically-sized column or row respectively, don't participate in baseline alignment in the, row-like or column-like respectively, shared alignment context.">
+<style>
+.inline-grid {
+  position: relative;
+  border: solid;
+  text-orientation: sideways;
+  font-family: ahem;
+}
+
+.grid {
+  position: relative;
+  border: solid;
+  text-orientation: sideways;
+}
+.columns { grid-template-columns: 100px 100px; }
+.rows { grid-template-rows: 100px 100px; }
+
+.height25  { height: 25px; }
+.height50  { height: 50px; }
+.height200 { height: 200px; }
+.width25   { width: 25px; }
+.width50   { width: 50px; }
+.width200  { width: 200px; }
+
+.height200Percent { height: 200%; }
+.width200Percent  { width: 200%; }
+
+.bigFont { font-size: 50px; }
+.paddingLeft { padding-left: 25px; }
+.paddingBottom { padding-bottom: 25px; }
+.paddingRight { padding-right: 25px; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.inline-grid')">
+
+<h3>items with relative size</h3>
+
+<pre>auto-sized rows - items with relative height</pre>
+
+<div class="inline-grid alignItemsBaseline columns">
+  <div class="firstRowFirstColumn height50"          data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50"></div>
+  <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="100"></div>
+  <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="50" data-expected-width="200" data-expected-height="25"></div>
+</div>
+
+<pre>auto-sized columns - items with relative width</pre>
+
+<div class="inline-grid justifyItemsBaseline rows">
+  <div class="firstRowFirstColumn verticalLR width50"          data-offset-x="0"  data-offset-y="0"   data-expected-width="50"  data-expected-height="100"></div>
+  <div class="secondRowFirstColumn verticalLR width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="100" data-expected-height="100"></div>
+  <div class="firstRowSpanning2AutoColumn verticalLR width25"  data-offset-x="50" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+</div>
+
+<h3>orthogonal items</h3>
+
+<pre>auto-sized rows - horizonal grid and verticalLR item - column-axis baseline</pre>
+
+<div class="inline-grid alignItemsBaseline columns height200">
+  <div class="firstRowFirstColumn bigFont paddingBottom" data-offset-x="0"   data-offset-y="0"   data-expected-width="100" data-expected-height="75">É</div>
+  <div class="firstRowSecondColumn verticalLR"           data-offset-x="100" data-offset-y="0"   data-expected-width="100" data-expected-height="175">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+  <div class="autoRowAutoColumnSpanning2 height25"       data-offset-x="0"   data-offset-y="175" data-expected-width="200" data-expected-height="25"></div>
+</div>
+
+<pre>auto-sized columns - horizontal grid item - row-axis baseline</pre>
+
+<div class="inline-grid justifyItemsBaseline rows width200">
+  <div class="firstRowFirstColumn bigFont verticalLR paddingLeft" data-offset-x="0"   data-offset-y="0"   data-expected-width="75"  data-expected-height="100">É</div>
+  <div class="secondRowFirstColumn"                               data-offset-x="0"   data-offset-y="100" data-expected-width="175" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+  <div class="firstRowSpanning2AutoColumn width25"                data-offset-x="175" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+</div>
+
+<pre>auto-sized rows - verticalLR grid and horizontal item - column-axis baseline</pre>
+
+<div class="inline-grid verticalLR alignItemsBaseline columns width200">
+  <div class="firstRowFirstColumn bigFont paddingLeft" data-offset-x="0"   data-offset-y="0"   data-expected-width="75"  data-expected-height="100">É</div>
+  <div class="firstRowSecondColumn horizontalTB"       data-offset-x="0"   data-offset-y="100" data-expected-width="175" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+  <div class="autoRowAutoColumnSpanning2 width25"      data-offset-x="175" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+</div>
+
+<pre>auto-sized rows - verticalRL grid and horizontal item - column-axis baseline</pre>
+
+<div class="inline-grid verticalRL alignItemsBaseline columns width200">
+  <div class="firstRowFirstColumn bigFont paddingRight"  data-offset-x="125" data-offset-y="0"   data-expected-width="75"  data-expected-height="100">É</div>
+  <div class="firstRowSecondColumn horizontalTB"         data-offset-x="25"  data-offset-y="100" data-expected-width="175" data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+  <div class="autoRowAutoColumnSpanning2 width25"        data-offset-x="0"   data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+</div>
+
+</body>
