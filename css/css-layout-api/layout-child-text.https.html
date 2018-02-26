@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#layout-children">
+<link rel="match" href="layout-child-ref.html">
+<meta name="assert" content="This test checks that children... TODO." />
+
+<style>
+.test {
+  --child-expected: ["default", "2", "default"];
+
+  background: red;
+  color: green;
+  margin: 10px;
+  width: 100px;
+  --child: default;
+}
+
+.inflow {
+  visibility: hidden;
+  --child: 2;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  Text text text
+  <div class="inflow"></div>
+  Text text text
+</div>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-worklet.js'});
+</script>
