@@ -13,6 +13,12 @@ function toMojoCentralState(state) {
   }
 }
 
+// Canonicalizes UUIDs and converts them to Mojo UUIDs.
+function canonicalizeAndConvertToMojoUUID(uuids) {
+  let canonicalUUIDs = uuids.map(val => ({uuid: BluetoothUUID.getService(val)}));
+  return canonicalUUIDs;
+}
+
 // Mapping of the property names of
 // BluetoothCharacteristicProperties defined in
 // https://webbluetoothcg.github.io/web-bluetooth/#characteristicproperties
@@ -43,7 +49,6 @@ function ArrayToMojoCharacteristicProperties(arr) {
 
   return struct;
 }
-
 
 class FakeBluetooth {
   constructor() {
@@ -110,20 +115,67 @@ class FakeCentral {
   async simulatePreconnectedPeripheral({
     address, name, knownServiceUUIDs = []}) {
 
-    // Canonicalize and convert to mojo UUIDs.
-    knownServiceUUIDs.forEach((val, i, arr) => {
-      knownServiceUUIDs[i] = {uuid: BluetoothUUID.getService(val)};
-    });
-
     await this.fake_central_ptr_.simulatePreconnectedPeripheral(
-      address, name, knownServiceUUIDs);
+      address, name, canonicalizeAndConvertToMojoUUID(knownServiceUUIDs));
 
+    return this.fetchOrCreatePeripheral_(address);
+  }
+
+  // Simulates an advertisement packet described by |scanResult| being received
+  // from a device. If central is currently scanning, the device will appear on
+  // the list of discovered devices.
+  async simulateAdvertisementReceived(scanResult) {
+    scanResult.scanRecord.uuids =
+        canonicalizeAndConvertToMojoUUID(scanResult.scanRecord.uuids);
+
+    // Convert the optional appearance and txPower fields to the corresponding
+    // Mojo structures, since Mojo does not support optional integer values.
+    // In case appearance or txPower is null or undefined, we check if the
+    // type of the values are numbers instead.
+    if (typeof scanResult.scanRecord.appearance === 'number') {
+      scanResult.scanRecord.appearance = {
+        hasValue: true,
+        value: scanResult.scanRecord.appearance,
+      };
+    } else {
+      scanResult.scanRecord.appearance = {
+        hasValue: false,
+        value: 0,
+      };
+    }
+    if (typeof scanResult.scanRecord.txPower === 'number') {
+      scanResult.scanRecord.txPower = {
+        hasValue: true,
+        value: scanResult.scanRecord.txPower,
+      };
+    } else {
+      scanResult.scanRecord.txPower = {
+        hasValue: false,
+        value: 0,
+      };
+    }
+
+    // Convert manufacturerData from a record<DOMString, DataView> into a
+    // map<uint8, array<uint8>> for Mojo.
+    let manufacturerData = new Map();
+    scanResult.scanRecord.manufacturerData.forEach((value, key) => {
+      manufacturerData.set(Number(key), value);
+    });
+    scanResult.scanRecord.manufacturerData = manufacturerData;
+
+    await this.fake_central_ptr_.simulateAdvertisementReceived(
+        new bluetooth.mojom.ScanResult(scanResult));
+
+    return this.fetchOrCreatePeripheral_(scanResult.deviceAddress);
+  }
+
+  // Create a fake_peripheral object from the given address.
+  fetchOrCreatePeripheral_(address) {
     let peripheral = this.peripherals_.get(address);
     if (peripheral === undefined) {
       peripheral = new FakePeripheral(address, this.fake_central_ptr_);
       this.peripherals_.set(address, peripheral);
     }
-
     return peripheral;
   }
 }
